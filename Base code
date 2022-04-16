@@ -1,0 +1,132 @@
+--Goals are: Create level designer
+--Make general tile sheet
+--Make unique interactions for different tiles
+
+-- Buttons (Not my code, from Love2d forum)
+pressed_button = function (buttons)
+	if love.mouse.isDown(1) then
+		local x, y = love.mouse.getX(), love.mouse.getY()
+		for button_name, button in pairs (buttons) do
+			if (x > button.x) and (x < (button.x + button.w)) and
+			   (y > button.y) and (y < (button.y + button.h)) then
+				button.clicked = true
+				return button_name
+			end
+		end
+	end
+	return nil
+end
+
+button_draw = function (data)
+	local x, y = data.x, data.y
+	if data.clicked then 
+		x=x+1
+		y=y+1
+		data.clicked = false
+	end
+    --	love.graphics.setColor(1, 1, 1)
+	love.graphics.rectangle ('line', x, y, data.w, data.h)
+	love.graphics.print(data.text, x+2, y)
+end
+
+color = {}
+color.yes = true
+color.change = .99
+
+function love.keypressed(key)
+    if key == "f1" then
+        saveGame()
+    end
+    if key == "f1" then
+        timer = 10
+    end
+
+end
+
+function saveGame()
+    data = {}
+    data.color = {}
+    data.colorAt = color.change
+    data.colorYes = color.yes
+
+
+    serialized = lume.serialize(data)
+    -- The filetype actually doesn't matter, and can even be omitted.
+    love.filesystem.write("savedata.txt", serialized)
+end
+
+letquit = false
+
+function love.quit()
+    if letquit then
+        return false
+    else
+        return true
+    end
+end
+
+timer = 10
+
+function love.load()
+    lume = require "lume"
+
+    love.graphics.setBackgroundColor(color.change, color.change, color.change)
+
+    if love.filesystem.getInfo("savedata.txt") then
+        file = love.filesystem.read("savedata.txt")
+        data = lume.deserialize(file)
+
+        --Apply the color info
+        color.change = data.colorAt
+        color.yes = data.colorYes
+    end
+
+    -- on load
+    buttons = {}
+    buttons['reset'] = {text = 'reset', x=10, y=10, w=35, h=15}
+    buttons['fuck'] = {text = 'quit', x=45, y=10, w=30, h=15}
+end
+
+function love.update(dt)
+    if color.yes == false then
+        color.change = 0.99
+        color.yes = true
+        love.filesystem.remove("savedata.txt")
+    end
+
+    if love.mouse.isDown(2) then
+        color.change = color.change - 0.001
+        timer = 0
+    end
+
+    -- on update
+    local pressed_button = pressed_button (buttons)
+    if pressed_button and pressed_button == "reset" then
+	    love.graphics.setBackgroundColor(0.1, 0.1, 0.1)
+        color.yes = false
+    end
+    if pressed_button and pressed_button == "fuck" then
+        saveGame()
+    end
+    if pressed_button and pressed_button == "fuck" then
+        timer = 10 and love.event.quit()
+    end
+    
+    timer = timer - dt 
+        if timer >= 0 then
+        letquit = true
+        else letquit = false
+    end
+
+end
+
+
+function love.draw()
+
+    for button_name, button in pairs (buttons) do
+        button_draw (button)
+    end
+
+    love.graphics.setBackgroundColor(color.change, color.change, color.change)
+
+end
