@@ -2,131 +2,131 @@
 --Make general tile sheet
 --Make unique interactions for different tiles
 
--- Buttons (Not my code, from Love2d forum)
-pressed_button = function (buttons)
-	if love.mouse.isDown(1) then
-		local x, y = love.mouse.getX(), love.mouse.getY()
-		for button_name, button in pairs (buttons) do
-			if (x > button.x) and (x < (button.x + button.w)) and
-			   (y > button.y) and (y < (button.y + button.h)) then
-				button.clicked = true
-				return button_name
-			end
-		end
-	end
-	return nil
+fullscreen = 0
+fulltimer = 1
+
+BUTTON_HEIGHT = 64
+
+local
+function newButton(text, fn)
+    return {
+        text = text,
+        fn = fn,
+
+        now = false,
+        last = false
+    }
 end
 
-button_draw = function (data)
-	local x, y = data.x, data.y
-	if data.clicked then 
-		x=x+1
-		y=y+1
-		data.clicked = false
-	end
-    --	love.graphics.setColor(1, 1, 1)
-	love.graphics.rectangle ('line', x, y, data.w, data.h)
-	love.graphics.print(data.text, x+2, y)
-end
-
-color = {}
-color.yes = true
-color.change = .99
-
-function love.keypressed(key)
-    if key == "f1" then
-        saveGame()
-    end
-    if key == "f1" then
-        timer = 10
-    end
-
-end
-
-function saveGame()
-    data = {}
-    data.color = {}
-    data.colorAt = color.change
-    data.colorYes = color.yes
-
-
-    serialized = lume.serialize(data)
-    -- The filetype actually doesn't matter, and can even be omitted.
-    love.filesystem.write("savedata.txt", serialized)
-end
-
-letquit = false
-
-function love.quit()
-    if letquit then
-        return false
-    else
-        return true
-    end
-end
-
-timer = 10
+local buttons = {}
+local font = nil
 
 function love.load()
-    lume = require "lume"
 
-    love.graphics.setBackgroundColor(color.change, color.change, color.change)
+    font = love.graphics.newFont(32)
 
-    if love.filesystem.getInfo("savedata.txt") then
-        file = love.filesystem.read("savedata.txt")
-        data = lume.deserialize(file)
+    table.insert(buttons, newButton(
+        "Start Game",
+        function()
+            print("Starting game")
+        end))
 
-        --Apply the color info
-        color.change = data.colorAt
-        color.yes = data.colorYes
-    end
+    table.insert(buttons, newButton(
+        "Load Game",
+        function()
+            print("Loading game")
+        end))
 
-    -- on load
-    buttons = {}
-    buttons['reset'] = {text = 'reset', x=10, y=10, w=35, h=15}
-    buttons['fuck'] = {text = 'quit', x=45, y=10, w=30, h=15}
+    table.insert(buttons, newButton(
+        "Settings",
+        function()
+            print("going to settings menu")
+        end))
+
+    table.insert(buttons, newButton(
+        "Exit",
+        function()
+            love.event.quit(0)
+        end))
+
 end
 
 function love.update(dt)
-    if color.yes == false then
-        color.change = 0.99
-        color.yes = true
-        love.filesystem.remove("savedata.txt")
-    end
 
-    if love.mouse.isDown(2) then
-        color.change = color.change - 0.001
-        timer = 0
-    end
+    fulltimer = fulltimer - dt
 
-    -- on update
-    local pressed_button = pressed_button (buttons)
-    if pressed_button and pressed_button == "reset" then
-	    love.graphics.setBackgroundColor(0.1, 0.1, 0.1)
-        color.yes = false
+    if love.keyboard.isDown("f11") and fullscreen == 0 and fulltimer <= 0 then
+        love.window.setMode(0, 0)
+        fullscreen = 1
+        fulltimer = 1
     end
-    if pressed_button and pressed_button == "fuck" then
-        saveGame()
-    end
-    if pressed_button and pressed_button == "fuck" then
-        timer = 10 and love.event.quit()
-    end
-    
-    timer = timer - dt 
-        if timer >= 0 then
-        letquit = true
-        else letquit = false
+    if love.keyboard.isDown("f11") and fullscreen == 1 and fulltimer <= 0 then
+        love.window.setMode(800, 600)
+        fullscreen = 0
+        fulltimer = 1
     end
 
 end
 
 
 function love.draw()
+    local ww = love.graphics.getWidth()
+    local wh = love.graphics.getHeight()
 
-    for button_name, button in pairs (buttons) do
-        button_draw (button)
+    local button_width = ww * (1/3)
+    local margin = 16
+
+    local total_height = (BUTTON_HEIGHT + margin) * #buttons
+    local cursor_y = 0
+
+    for i, button in ipairs(buttons) do
+
+        button.last = button.now
+
+        local bx = (ww * 0.5) - (button_width * 0.5)
+        local by = (wh * 0.5) - (total_height * 0.5) + cursor_y
+
+        local color = {0.4, 0.4, 0.5, 1.0}
+
+        local mx, my = love.mouse.getPosition()
+
+        local hot = mx > bx and mx < bx + button_width and
+                    my > by and my < by + BUTTON_HEIGHT
+
+        if hot then
+            color = {0.8, 0.8, 0.9, 1.0}
+        end
+
+        button.now =love.mouse.isDown(1)
+
+        if button.now and not button.last and hot then
+            button.fn()
+        end
+
+        love.graphics.setColor(unpack(color))
+        love.graphics.rectangle(
+            "fill",
+            bx,
+            by,
+            button_width,
+            BUTTON_HEIGHT
+        )
+
+        love.graphics.setColor(0, 0, 0, 1)
+
+        local textW = font:getWidth(button.text)
+        local textH = font:getHeight(button.text)
+        
+        love.graphics.print(
+            button.text,
+            font,
+            (ww * 0.5) - textW * 0.5,
+            by + textH * 0.5
+        )
+
+
+        cursor_y = cursor_y + (BUTTON_HEIGHT + margin)
+
     end
-
-    love.graphics.setBackgroundColor(color.change, color.change, color.change)
 
 end
