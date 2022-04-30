@@ -7,6 +7,9 @@ Make timer for amount of time taken on each project
 and total time
 ]]
 
+watermelon = 7
+fish = "oisdj"
+
 timer = 0
 
 quitTimer = 10
@@ -32,6 +35,17 @@ function saveGame()
 
 end
 
+function findTask()
+
+    task = {}
+
+    task.a = {}
+
+    task.a.a = watermelon
+    task.a.b = fish
+
+end
+
 function love.keypressed(key)
     if key == "f1" then
         saveGame()
@@ -54,6 +68,8 @@ function love.load()
 
     end
 
+    findTask()
+
 end
 
 function love.update(dt)
@@ -73,5 +89,6 @@ end
 function love.draw()
 
     love.graphics.print(timer, 400, 400)
+    love.graphics.print(task.a.a, 400, 300)
 
 end
